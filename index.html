@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎀 Tic Tac Toe – Kawaii Edition</title>
+  <meta name="description" content="A cute kawaii claymorphism Tic Tac Toe game featuring Hello Kitty and Cinnamoroll." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── RESET & BASE ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pink:       #F7C8D0;
+      --pink-deep:  #F0A8B8;
+      --cream:      #FFF7F8;
+      --blue:       #CFE7FF;
+      --blue-deep:  #A8CEFF;
+      --peach:      #FFDDE2;
+      --peach-deep: #FFBFCC;
+      --shadow:     rgba(200, 160, 170, 0.35);
+      --shadow-sm:  rgba(200, 160, 170, 0.20);
+      --text-main:  #C47B90;
+      --text-soft:  #D9A0B2;
+      --radius-pill:50px;
+      --transition: 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(145deg, #FFF0F4 0%, #F5EDFF 40%, #E8F4FF 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 24px 16px 40px;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Soft deco blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(60px);
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 380px; height: 380px;
+      background: rgba(247, 200, 208, 0.30);
+      top: -80px; left: -80px;
+    }
+    body::after {
+      width: 320px; height: 320px;
+      background: rgba(207, 231, 255, 0.30);
+      bottom: -60px; right: -60px;
+    }
+
+    /* ─── WRAPPER ───────────────────────────────────────────────── */
+    .app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* ─── TITLE ─────────────────────────────────────────────────── */
+    .title-wrap { text-align: center; }
+    .title-wrap h1 {
+      font-size: clamp(2rem, 8vw, 2.8rem);
+      font-weight: 900;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+      line-height: 1;
+      text-shadow: 0 3px 0 var(--pink-deep);
+    }
+    .title-wrap h1 span { color: var(--blue-deep); text-shadow: 0 3px 0 #8BBEFF; }
+    .title-sub {
+      margin-top: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-soft);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ─── PLAYER INDICATORS ─────────────────────────────────────── */
+    .players-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--cream);
+      border-radius: var(--radius-pill);
+      padding: 10px 20px;
+      box-shadow: 0 6px 20px var(--shadow-sm), inset 0 -3px 0 var(--pink);
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .player-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 50px;
+      background: transparent;
+      transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+      flex: 1;
+      justify-content: center;
+    }
+    .player-card.active-p {
+      background: var(--peach);
+      box-shadow: 0 4px 12px var(--shadow-sm), inset 0 -3px 0 var(--peach-deep);
+      transform: translateY(-2px);
+    }
+    .player-card:first-child.active-p { background: var(--pink); box-shadow: 0 4px 12px var(--shadow), inset 0 -3px 0 var(--pink-deep); }
+    .player-card:last-child.active-p  { background: var(--blue); box-shadow: 0 4px 12px rgba(170,205,255,0.35), inset 0 -3px 0 var(--blue-deep); }
+
+    /* Avatar – Original JPGs, clipped to circles with white background */
+    .player-avatar {
+      width: 65px; height: 65px;
+      border-radius: 50%;
+      object-fit: contain;
+      background: #ffffff;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      filter: none; /* Removed outline filters */
+      transition: transform var(--transition);
+    }
+    .player-card.active-p .player-avatar { 
+      transform: scale(1.1) translateY(-4px); 
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.12);
+    }
+
+    .player-info { display: flex; flex-direction: column; }
+    .player-label {
+      font-size: 0.68rem; font-weight: 700; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .player-name {
+      font-size: 0.9rem; font-weight: 800; color: var(--text-main);
+      white-space: nowrap;
+    }
+    .player-marker {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 900;
+      flex-shrink: 0;
+    }
+    .marker-hk { background: var(--pink); color: #C47B90; box-shadow: 0 2px 6px var(--shadow-sm); }
+    .marker-cn { background: var(--blue); color: #6A9FD4; box-shadow: 0 2px 6px rgba(170,205,255,0.35); }
+
+    /* (Score dots CSS removed) */
+
+    .vs-badge {
+      font-size: 0.7rem; font-weight: 900; color: var(--text-soft);
+      background: var(--peach);
+      padding: 4px 8px; border-radius: 50px;
+      box-shadow: 0 2px 8px var(--shadow-sm);
+      flex-shrink: 0;
+    }
+
+    /* ─── STATUS BUBBLE ─────────────────────────────────────────── */
+    .status-bubble {
+      background: var(--cream);
+      border-radius: var(--radius-pill);
+      padding: 10px 24px;
+      box-shadow: 0 6px 20px var(--shadow-sm), inset 0 -3px 0 var(--pink);
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text-main);
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+      min-width: 260px;
+    }
+    .status-bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -10px; left: 50%; transform: translateX(-50%);
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 10px solid var(--cream);
+      filter: drop-shadow(0 3px 2px var(--shadow-sm));
+    }
+    .status-bubble.win  { background: #FFF0C8; box-shadow: 0 6px 20px rgba(255,210,100,0.25), inset 0 -3px 0 #F5D070; color: #B8892A; }
+    .status-bubble.win::before { border-top-color: #FFF0C8; }
+    .status-bubble.draw { background: var(--peach); box-shadow: 0 6px 20px var(--shadow), inset 0 -3px 0 var(--peach-deep); }
+    .status-bubble.draw::before { border-top-color: var(--peach); }
+
+    /* ─── BOARD WRAPPER – pure CSS clay circle ─────────────────── */
+    .board-wrap {
+      position: relative;
+      width: min(360px, 90vw);
+      height: min(360px, 90vw);
+      flex-shrink: 0;
+      border-radius: 50%;
+
+      /* Layered radial gradients simulate clay texture + lighting */
+      background:
+        radial-gradient(ellipse at 36% 28%, rgba(255,240,246,0.80) 0%, transparent 48%),
+        radial-gradient(ellipse at 68% 72%, rgba(215,130,158,0.22) 0%, transparent 44%),
+        radial-gradient(ellipse at 50% 50%, #FBCFD8 0%, #F4B8C8 45%, #EAAAB8 80%, #E29AB0 100%);
+
+      /* Outer floating shadow + inner top-highlight + inner bottom-shade */
+      box-shadow:
+        0 18px 52px rgba(195, 110, 145, 0.38),
+        0 6px 18px  rgba(210, 140, 165, 0.26),
+        inset 0  5px 14px rgba(255, 235, 242, 0.72),
+        inset 0 -8px 18px rgba(178,  90, 128, 0.24);
+    }
+
+    /* ─── GRID OVERLAY ──────────────────────────────────────────── */
+    .grid-overlay {
+      position: absolute;
+      /* centered on board, inset so cells sit inside the circle */
+      top: 17%; left: 17%;
+      width: 66%; height: 66%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      /* The gap shows the board surface → looks like raised clay ridges */
+      gap: 14px;
+    }
+
+    /* Each cell = a recessed/engraved square depression in the clay */
+    .cell {
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      /* Slightly deeper pink than board surface */
+      background:
+        radial-gradient(ellipse at 38% 32%, #F2B5C6 0%, #E8A3B8 55%, #DC92A8 100%);
+      /* Inset shadow = pressed-in / engraved depth look */
+      box-shadow:
+        inset 0  4px 10px rgba(158,  68, 100, 0.28),
+        inset 0  2px  4px rgba(158,  68, 100, 0.14),
+        inset 0 -2px  5px rgba(255, 210, 225, 0.22);
+      transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+    }
+    .cell:hover:not(.taken) {
+      background:
+        radial-gradient(ellipse at 38% 32%, #F9CCDA 0%, #F2B8CA 55%, #E8A8BC 100%);
+      box-shadow:
+        inset 0  3px  8px rgba(158,  68, 100, 0.20),
+        inset 0  1px  3px rgba(158,  68, 100, 0.10),
+        inset 0 -2px  5px rgba(255, 215, 228, 0.28);
+    }
+    .cell:active:not(.taken) { transform: scale(0.93); }
+
+    /* Cell token – Original JPG tokens as circular stickers */
+    .cell-token {
+      width: 85%;
+      height: 85%;
+      object-fit: contain;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.1),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.05);
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      pointer-events: none;
+    }
+    @keyframes popIn {
+      from { transform: scale(0) rotate(-10deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+    }
+
+    /* Win highlight */
+    .cell.win-cell { background: rgba(255, 240, 150, 0.55) !important; }
+    .cell.win-cell .cell-token { animation: winPulse 0.6s ease forwards; }
+    @keyframes winPulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.15) rotate(5deg); }
+      70%  { transform: scale(0.95) rotate(-3deg); }
+      100% { transform: scale(1.05) rotate(0deg); }
+    }
+
+    /* ─── SINGLE BUTTON ─────────────────────────────────────────── */
+    .buttons {
+      display: flex;
+      justify-content: center;
+    }
+
+    .clay-btn {
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 14px 40px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+      display: flex; align-items: center; gap: 8px;
+      letter-spacing: 0.3px;
+    }
+    .clay-btn:hover  { transform: translateY(-3px); }
+    .clay-btn:active { transform: translateY(1px) scale(0.97); }
+
+    /* "New Game" state – blue */
+    .clay-btn.state-new {
+      background: var(--blue);
+      color: #5A88C0;
+      box-shadow: 0 6px 18px rgba(160,190,255,0.32), inset 0 -4px 0 var(--blue-deep);
+    }
+    .clay-btn.state-new:hover { box-shadow: 0 10px 24px rgba(160,190,255,0.40), inset 0 -4px 0 var(--blue-deep); background: #DDF0FF; }
+
+    /* "Restart" state – pink */
+    .clay-btn.state-restart {
+      background: var(--pink);
+      color: #C4607A;
+      box-shadow: 0 6px 18px rgba(200,140,160,0.32), inset 0 -4px 0 var(--pink-deep);
+    }
+    .clay-btn.state-restart:hover { box-shadow: 0 10px 24px rgba(200,140,160,0.40), inset 0 -4px 0 var(--pink-deep); background: #FAD0DA; }
+
+    .btn-icon { font-size: 1rem; }
+
+    /* ─── CONFETTI ───────────────────────────────────────────────── */
+    #confetti-canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ─── FOOTER ────────────────────────────────────────────────── */
+    .footer-note {
+      font-size: 0.72rem; color: var(--text-soft);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    /* ─── RESPONSIVE ────────────────────────────────────────────── */
+    @media (max-width: 400px) {
+      .players-pill { padding: 8px 12px; gap: 6px; }
+      .player-card  { padding: 6px 10px; gap: 7px; }
+      .player-avatar { width: 46px; height: 46px; }
+      .player-name   { font-size: 0.8rem; }
+      .clay-btn      { padding: 12px 28px; font-size: 0.88rem; }
+      .status-bubble { font-size: 0.86rem; padding: 9px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div class="app">
+
+  <!-- ── TITLE ── -->
+  <div class="title-wrap">
+    <h1>Tic <span>Tac</span> Toe</h1>
+    <p class="title-sub">✿ kawaii edition ✿</p>
+  </div>
+
+  <!-- ── PLAYERS PILL ── -->
+  <div class="players-pill" role="region" aria-label="Player indicators">
+    <!-- Player 1 – Hello Kitty -->
+    <div class="player-card active-p" id="card-p1">
+      <img class="player-avatar" src="assets/hello_kitty_character.png" alt="Hello Kitty" />
+      <div class="player-info">
+        <span class="player-label">Player 1</span>
+        <span class="player-name">Hello Kitty</span>
+
+      </div>
+      <div class="player-marker marker-hk">✕</div>
+    </div>
+
+    <div class="vs-badge">VS</div>
+
+    <!-- Player 2 – Cinnamoroll -->
+    <div class="player-card" id="card-p2">
+      <div class="player-marker marker-cn">○</div>
+      <div class="player-info" style="align-items:flex-end">
+        <span class="player-label">Player 2</span>
+        <span class="player-name">Cinnamoroll</span>
+
+      </div>
+      <img class="player-avatar" src="assets/cinnamoroll_player.png" alt="Cinnamoroll" />
+    </div>
+  </div>
+
+  <!-- ── STATUS BUBBLE ── -->
+  <div class="status-bubble" id="statusBubble" role="status" aria-live="polite">
+    🎀 Hello Kitty's Turn!
+  </div>
+
+  <!-- ── BOARD – pure CSS clay, no image ── -->
+  <div class="board-wrap">
+    <div class="grid-overlay" id="grid" role="grid" aria-label="Tic Tac Toe grid"></div>
+  </div>
+
+  <!-- ── SINGLE BUTTON ── -->
+  <div class="buttons">
+    <button class="clay-btn state-new" id="mainBtn" aria-label="New Game">
+      <span class="btn-icon">✦</span>
+      <span id="btnLabel">New Game</span>
+    </button>
+  </div>
+
+
+</div><!-- /app -->
+
+<script>
+/* ═══════════════════════════════════════════════════
+   ASSETS  – user's own files
+═══════════════════════════════════════════════════ */
+const IMG_HK  = 'assets/hello_kitty_character.png';
+const IMG_CN  = 'assets/cinnamoroll_player.png';
+
+/* ═══════════════════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════════════════ */
+const WIN_LINES = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+let board         = Array(9).fill(null);
+let currentPlayer = 1;   // 1 = Hello Kitty, 2 = Cinnamoroll
+let gameActive    = true;
+let gameStarted   = false; // tracks first move 
+/* (scores variable removed) */
+
+/* ═══════════════════════════════════════════════════
+   AUDIO  (tiny Web Audio synth – no files needed)
+═══════════════════════════════════════════════════ */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function getAudio() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+
+function playTone(freq, type='sine', duration=0.12, gain=0.22) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const vol = ctx.createGain();
+    osc.connect(vol); vol.connect(ctx.destination);
+    osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    vol.gain.setValueAtTime(gain, ctx.currentTime);
+    vol.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+function playPlace() { playTone(600, 'triangle', 0.10, 0.20); }
+function playWin()   { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f,'triangle',0.20,0.22), i*110)); }
+function playDraw()  { playTone(350, 'sawtooth', 0.25, 0.18); }
+function playClick() { playTone(440, 'triangle', 0.08, 0.14); }
+
+/* ═══════════════════════════════════════════════════
+   DOM REFS
+═══════════════════════════════════════════════════ */
+const grid     = document.getElementById('grid');
+const statusEl = document.getElementById('statusBubble');
+const mainBtn  = document.getElementById('mainBtn');
+const btnLabel = document.getElementById('btnLabel');
+const cardP1   = document.getElementById('card-p1');
+const cardP2   = document.getElementById('card-p2');
+
+/* ═══════════════════════════════════════════════════
+   BUTTON STATE: "New Game" ↔ "Restart"
+═══════════════════════════════════════════════════ */
+function setButtonRestart() {
+  mainBtn.className = 'clay-btn state-restart';
+  mainBtn.querySelector('.btn-icon').textContent = '↺';
+  btnLabel.textContent = 'Restart';
+  mainBtn.setAttribute('aria-label', 'Restart Game');
+  mainBtn.onclick = restartGame;
+}
+
+function setButtonNewGame() {
+  mainBtn.className = 'clay-btn state-new';
+  mainBtn.querySelector('.btn-icon').textContent = '✦';
+  btnLabel.textContent = 'New Game';
+  mainBtn.setAttribute('aria-label', 'New Game');
+  mainBtn.onclick = newGame;
+}
+
+/* ═══════════════════════════════════════════════════
+   BUILD GRID
+═══════════════════════════════════════════════════ */
+function buildGrid() {
+  grid.innerHTML = '';
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.setAttribute('role', 'gridcell');
+    cell.setAttribute('aria-label', `Cell ${i + 1}`);
+    cell.dataset.index = i;
+    cell.addEventListener('click', onCellClick);
+    grid.appendChild(cell);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   CELL CLICK
+═══════════════════════════════════════════════════ */
+function onCellClick(e) {
+  const idx = +e.currentTarget.dataset.index;
+  if (!gameActive || board[idx]) return;
+
+  // First move → switch button to Restart
+  if (!gameStarted) {
+    gameStarted = true;
+    setButtonRestart();
+  }
+
+  board[idx] = currentPlayer;
+  renderToken(e.currentTarget, currentPlayer);
+  e.currentTarget.classList.add('taken');
+  playPlace();
+
+  const winner = checkWinner();
+  if (winner) {
+    handleWin(winner);
+  } else if (board.every(Boolean)) {
+    handleDraw();
+  } else {
+    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    updateStatus();
+    updateActiveCard();
+  }
+}
+
+function renderToken(cell, player) {
+  const img = document.createElement('img');
+  img.className = 'cell-token';
+  img.src = player === 1 ? IMG_HK : IMG_CN;
+  img.alt = player === 1 ? 'Hello Kitty' : 'Cinnamoroll';
+  cell.appendChild(img);
+}
+
+/* ═══════════════════════════════════════════════════
+   CHECK WINNER
+═══════════════════════════════════════════════════ */
+function checkWinner() {
+  for (const [a,b,c] of WIN_LINES) {
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return { player: board[a], line: [a,b,c] };
+    }
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════
+   WIN / DRAW / STATUS
+═══════════════════════════════════════════════════ */
+function handleWin({ player, line }) {
+  gameActive = false;
+  line.forEach(idx => grid.children[idx].classList.add('win-cell'));
+  const name = player === 1 ? 'Hello Kitty' : 'Cinnamoroll';
+  statusEl.textContent = `🏆 ${name} Wins! ✨`;
+  statusEl.className = 'status-bubble win';
+  playWin();
+  launchConfetti(player);
+}
+
+function handleDraw() {
+  gameActive = false;
+  statusEl.textContent = `🌸 It's a Draw!`;
+  statusEl.className = 'status-bubble draw';
+  playDraw();
+}
+
+function updateStatus() {
+  const name  = currentPlayer === 1 ? 'Hello Kitty' : 'Cinnamoroll';
+  const emoji = currentPlayer === 1 ? '🎀' : '🌙';
+  statusEl.textContent = `${emoji} ${name}'s Turn!`;
+  statusEl.className = 'status-bubble';
+}
+
+function updateActiveCard() {
+  cardP1.classList.toggle('active-p', currentPlayer === 1);
+  cardP2.classList.toggle('active-p', currentPlayer === 2);
+}
+
+/* ═══════════════════════════════════════════════════
+   SCORE DOTS
+═══════════════════════════════════════════════════ */
+/* (Score dots logic removed) */
+
+/* ═══════════════════════════════════════════════════
+   CONFETTI
+═══════════════════════════════════════════════════ */
+function launchConfetti(player) {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx    = canvas.getContext('2d');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = player === 1
+    ? ['#F7C8D0','#FFDDE2','#FFB5C8','#FFF0F4','#F0A8B8']
+    : ['#CFE7FF','#A8CEFF','#D8F0FF','#E8F4FF','#80BFFF'];
+
+  const particles = Array.from({length: 80}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height * 0.3 - 40,
+    r: Math.random() * 7 + 4,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    tilt: Math.random() * 20 - 10,
+    tiltSpeed: Math.random() * 0.1 + 0.05,
+    angle: Math.random() * Math.PI * 2,
+    speed: Math.random() * 2 + 1.5,
+    shape: Math.random() > 0.5 ? 'circle' : 'heart'
+  }));
+
+  let frame = 0;
+  (function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.y += p.speed; p.angle += p.tiltSpeed;
+      p.x += Math.sin(p.angle) * 1.2; p.tilt += p.tiltSpeed;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.tilt * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, 1 - frame / 140);
+      ctx.beginPath();
+      if (p.shape === 'heart') {
+        const s = p.r * 0.5;
+        ctx.moveTo(0, -s);
+        ctx.bezierCurveTo(s, -s*2, s*2.2, s*0.5, 0, s*2);
+        ctx.bezierCurveTo(-s*2.2, s*0.5, -s, -s*2, 0, -s);
+      } else { ctx.arc(0, 0, p.r, 0, Math.PI * 2); }
+      ctx.fill(); ctx.restore();
+    });
+    frame++;
+    if (frame < 160) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  })();
+}
+
+/* ═══════════════════════════════════════════════════
+   RESTART  (keep scores, button stays "Restart")
+═══════════════════════════════════════════════════ */
+function restartGame() {
+  board         = Array(9).fill(null);
+  currentPlayer = 1;
+  gameActive    = true;
+  gameStarted   = true; // still mid-session; button stays Restart
+  buildGrid();
+  updateStatus();
+  updateActiveCard();
+  statusEl.className = 'status-bubble';
+  playClick();
+}
+
+/* ═══════════════════════════════════════════════════
+   NEW GAME  (reset scores; only reachable on fresh load)
+═══════════════════════════════════════════════════ */
+function newGame() {
+  gameStarted   = true; 
+  /* (scores reset removed) */
+  board         = Array(9).fill(null);
+  currentPlayer = 1;
+  gameActive    = true;
+  buildGrid();
+  updateStatus();
+  updateActiveCard();
+  statusEl.className = 'status-bubble';
+  setButtonRestart();
+  playClick();
+}
+
+/* ═══════════════════════════════════════════════════
+   INIT  – page starts with "New Game" button
+═══════════════════════════════════════════════════ */
+setButtonNewGame();
+buildGrid();
+updateStatus();
+</script>
+</body>
+</html>
